@@ -7,6 +7,8 @@ import players.mcts.MCTSParams;
 import players.rhea.RHEAPlayer;
 import players.rhea.utils.RHEAParams;
 
+import players.GoupX.mctsNew.MCTSPlayerNew;
+import players.GoupX.mctsNew.MCTSParamsNew;
 
 import java.util.ArrayList;
 
@@ -29,7 +31,13 @@ public class Test {
         // Create players
         ArrayList<Player> players = new ArrayList<>();
         int playerID = Types.TILETYPE.AGENT0.getKey();
+        //mctsNew
+        MCTSParamsNew mctsParamsNew = new MCTSParamsNew();
+        mctsParamsNew.stop_type = mctsParamsNew.STOP_ITERATIONS;
+        mctsParamsNew.heuristic_method = mctsParamsNew.CUSTOM_HEURISTIC;
 
+
+        //mcts
         MCTSParams mctsParams = new MCTSParams();
         mctsParams.stop_type = mctsParams.STOP_ITERATIONS;
         mctsParams.heuristic_method = mctsParams.CUSTOM_HEURISTIC;
@@ -38,12 +46,12 @@ public class Test {
         rheaParams.heurisic_type = Constants.CUSTOM_HEURISTIC;
 
         players.add(new MCTSPlayer(seed, playerID++, mctsParams));
-        //players.add(new MCTSPlayer(seed, playerID++, mctsParams));
+        players.add(new MCTSPlayerNew(seed, playerID++, mctsParamsNew));
 
 //        players.add(new SimplePlayer(seed, playerID++));
         players.add(new RHEAPlayer(seed, playerID++, rheaParams));
 //        players.add(new SimplePlayer(seed, playerID++));
-        players.add(new MCTSPlayer(seed, playerID++, new MCTSParams()));
+        //players.add(new MCTSPlayer(seed, playerID++, new MCTSParams()));
         players.add(new RHEAPlayer(seed, playerID++, rheaParams));
 //        players.add(new HumanPlayer(ki1, playerID++));
 

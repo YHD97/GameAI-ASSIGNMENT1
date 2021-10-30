@@ -7,6 +7,10 @@ import players.rhea.utils.Constants;
 import players.rhea.utils.RHEAParams;
 import utils.*;
 
+import players.GoupX.mctsNew.MCTSParamsNew;
+import players.GoupX.mctsNew.MCTSPlayerNew;
+
+
 import java.util.*;
 
 import static utils.Types.VISUALS;
@@ -33,7 +37,7 @@ public class Run {
 
         //default
         if(args.length == 0)
-            args = new String[]{"0", "1", "1", "-1", "2", "3", "4", "5"};
+            args = new String[]{"0", "2", "5", "-1", "6", "3", "4", "5"};
 
         if(args.length != 8) {
             printHelp();
@@ -121,6 +125,16 @@ public class Run {
                         mctsParams.heuristic_method = mctsParams.CUSTOM_HEURISTIC;
                         p = new MCTSPlayer(seed, playerID++, mctsParams);
                         playerStr[i-4] = "MCTS";
+                        break;
+                    case 6:
+                        MCTSParamsNew mctsParamsNew = new MCTSParamsNew();
+                        mctsParamsNew.stop_type = mctsParamsNew.STOP_ITERATIONS;
+                        mctsParamsNew.num_iterations = 200;
+                        mctsParamsNew.rollout_depth = 12;
+
+                        mctsParamsNew.heuristic_method = mctsParamsNew.CUSTOM_HEURISTIC;
+                        p = new MCTSPlayerNew(seed, playerID++, mctsParamsNew);
+                        playerStr[i-4] = "MCTSNew";
                         break;
                     default:
                         System.out.println("WARNING: Invalid agent ID: " + agentType );
