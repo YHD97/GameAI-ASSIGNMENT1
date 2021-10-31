@@ -31,6 +31,7 @@ public class Run {
         System.out.println("\t\t 3 SimplePlayer");
         System.out.println("\t\t 4 RHEA 200 itereations, shift buffer, pop size 1, random init, length: 12");
         System.out.println("\t\t 5 MCTS 200 iterations, length: 12");
+        System.out.println("\t\t 5 MCTSNew 200 iterations, length: 12");
     }
 
     public static void main(String[] args) {
@@ -132,7 +133,7 @@ public class Run {
                         mctsParamsNew.num_iterations = 200;
                         mctsParamsNew.rollout_depth = 12;
 
-                        mctsParamsNew.heuristic_method = mctsParamsNew.CUSTOM_HEURISTIC;
+                        mctsParamsNew.heuristic_method = mctsParamsNew.A_StarHeuristic;
                         p = new MCTSPlayerNew(seed, playerID++, mctsParamsNew);
                         playerStr[i-4] = "MCTSNew";
                         break;

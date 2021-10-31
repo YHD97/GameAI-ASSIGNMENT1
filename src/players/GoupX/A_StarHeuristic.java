@@ -3,19 +3,24 @@ package players.GoupX;
 import core.GameState;
 import objects.Bomb;
 import objects.GameObject;
-import players.GoupX.StateHeuristic;
 import utils.Types;
+import utils.Types.DIRECTIONS;
+import utils.Types.TILETYPE;
 import utils.Vector2d;
 
 import java.util.*;
 
 import static java.lang.Math.*;
+import static java.lang.Math.min;
+import static utils.Types.DIRECTIONS.values;
 import static utils.Utils.*;
+import static utils.Utils.positionIsPassable;
 
 public class A_StarHeuristic extends StateHeuristic {
 
     private BoardStats rootBoardStats;
     private Random random;
+
 
     public A_StarHeuristic(GameState root, Random random) {
         this.random = random;
@@ -47,6 +52,14 @@ public class A_StarHeuristic extends StateHeuristic {
 
     public static class BoardStats
     {
+        //A*
+        public static final int STEP = 10;
+
+        private ArrayList<Node> openList = new ArrayList<Node>();
+        private ArrayList<Node> closeList = new ArrayList<Node>();
+
+
+        // 原来的文件
         int tick, nTeammates, nEnemies, blastStrength;
         boolean canKick;
         int nWoods;
@@ -87,11 +100,11 @@ public class A_StarHeuristic extends StateHeuristic {
         // Extra state information (to be used as heuristics):
 
         // Directions in range of a bomb
-        private HashMap<Types.DIRECTIONS, Integer> directionsInRangeOfBomb = null;
+        private HashMap<DIRECTIONS, Integer> directionsInRangeOfBomb = null;
         private Integer n_directionsInRangeOfBomb = null;
 
         // Safe directions
-        private ArrayList<Types.DIRECTIONS> safeDirections = null;
+        private ArrayList<DIRECTIONS> safeDirections = null;
         private Integer n_safeDirections = null;
 
         // Adjacency to an enemy
@@ -214,13 +227,15 @@ public class A_StarHeuristic extends StateHeuristic {
                     + (diffDistanceToNearestPowerUp / 10.0) * FACTOR_NEAREST_POWERUP;
         }
 
-        private HashMap<Types.DIRECTIONS, Integer> getDirectionsInRangeOfBomb(){
+        //字典：方向：数字
+        private HashMap<DIRECTIONS, Integer> getDirectionsInRangeOfBomb(){
             if(this.directionsInRangeOfBomb == null){
                 this.directionsInRangeOfBomb = computeDirectionsInRangeOfBomb(this.myPosition, this.bombs, this.dist);
             }
             return this.directionsInRangeOfBomb;
         }
 
+        //获取炸弹范围内的方向数
         private Integer getNumberOfDirectionsInRangeOfBomb(){
             if(this.n_directionsInRangeOfBomb == null){
                 this.n_directionsInRangeOfBomb = getDirectionsInRangeOfBomb().size();
@@ -228,9 +243,10 @@ public class A_StarHeuristic extends StateHeuristic {
             return this.n_directionsInRangeOfBomb;
         }
 
-        private HashMap<Types.DIRECTIONS, Integer> computeDirectionsInRangeOfBomb(Vector2d myPosition, ArrayList<Bomb> bombs,
-                                                                                  HashMap<Vector2d, Integer> dist) {
-            HashMap<Types.DIRECTIONS, Integer> ret = new HashMap<>();
+        //计算炸弹范围内的方向
+        private HashMap<DIRECTIONS, Integer> computeDirectionsInRangeOfBomb(Vector2d myPosition, ArrayList<Bomb> bombs,
+                                                                            HashMap<Vector2d, Integer> dist) {
+            HashMap<DIRECTIONS, Integer> ret = new HashMap<>();
 
             for(Bomb bomb : bombs){
                 Vector2d position = bomb.getPosition();
@@ -245,33 +261,34 @@ public class A_StarHeuristic extends StateHeuristic {
                     continue;
 
                 if(myPosition == position){ // We are on a bomb. All directions are in range of bomb.
-                    Types.DIRECTIONS[] directions = Types.DIRECTIONS.values();
+                    DIRECTIONS[] directions = values();
 
-                    for (Types.DIRECTIONS direction : directions) {
+                    for (DIRECTIONS direction : directions) {
                         ret.put(direction, max(ret.getOrDefault(direction, 0), bombBlastStrength));
                     }
                 }
                 else if(myPosition.x == position.x){
                     if(myPosition.y < position.y){ // Bomb is right.
-                        ret.put(Types.DIRECTIONS.DOWN, max(ret.getOrDefault(Types.DIRECTIONS.DOWN, 0), bombBlastStrength));
+                        ret.put(DIRECTIONS.DOWN, max(ret.getOrDefault(DIRECTIONS.DOWN, 0), bombBlastStrength));
                     }
                     else{ // Bomb is left.
-                        ret.put(Types.DIRECTIONS.UP, max(ret.getOrDefault(Types.DIRECTIONS.UP, 0), bombBlastStrength));
+                        ret.put(DIRECTIONS.UP, max(ret.getOrDefault(DIRECTIONS.UP, 0), bombBlastStrength));
                     }
                 }
                 else if(myPosition.y == position.y){
                     if(myPosition.x < position.x){ // Bomb is down.
-                        ret.put(Types.DIRECTIONS.RIGHT, max(ret.getOrDefault(Types.DIRECTIONS.RIGHT, 0), bombBlastStrength));
+                        ret.put(DIRECTIONS.RIGHT, max(ret.getOrDefault(DIRECTIONS.RIGHT, 0), bombBlastStrength));
                     }
                     else{ // Bomb is up.
-                        ret.put(Types.DIRECTIONS.LEFT, max(ret.getOrDefault(Types.DIRECTIONS.LEFT, 0), bombBlastStrength));
+                        ret.put(DIRECTIONS.LEFT, max(ret.getOrDefault(DIRECTIONS.LEFT, 0), bombBlastStrength));
                     }
                 }
             }
             return ret;
         }
 
-        private ArrayList<Types.DIRECTIONS> getSafeDirections(){
+        //获得安全的方向
+        private ArrayList<DIRECTIONS> getSafeDirections(){
             if(this.safeDirections == null){
                 this.safeDirections = computeSafeDirections(this.board, this.myPosition, getDirectionsInRangeOfBomb(),
                         this.bombs, this.enemies);
@@ -279,6 +296,7 @@ public class A_StarHeuristic extends StateHeuristic {
             return this.safeDirections;
         }
 
+        //获得安全方向的数量
         private Integer getNumberOfSafeDirections(){
             if(this.n_safeDirections == null){
                 this.n_safeDirections = getSafeDirections().size();
@@ -286,11 +304,12 @@ public class A_StarHeuristic extends StateHeuristic {
             return this.n_safeDirections;
         }
 
-        private ArrayList<Types.DIRECTIONS> computeSafeDirections(Types.TILETYPE[][] board, Vector2d myPosition,
-                                                                  HashMap<Types.DIRECTIONS, Integer> unsafeDirections,
-                                                                  ArrayList<Bomb> bombs, ArrayList<GameObject> enemies) {
+        //计算安全的方向
+        private ArrayList<DIRECTIONS> computeSafeDirections(Types.TILETYPE[][] board, Vector2d myPosition,
+                                                            HashMap<DIRECTIONS, Integer> unsafeDirections,
+                                                            ArrayList<Bomb> bombs, ArrayList<GameObject> enemies) {
             // All directions are unsafe. Return a position that won't leave us locked.
-            ArrayList<Types.DIRECTIONS> safe = new ArrayList<>();
+            ArrayList<DIRECTIONS> safe = new ArrayList<>();
 
             if(unsafeDirections.size() == 4){
 
@@ -307,9 +326,9 @@ public class A_StarHeuristic extends StateHeuristic {
 
                 nextBoard[myPosition.x][myPosition.y] = Types.TILETYPE.BOMB;
 
-                for (Map.Entry<Types.DIRECTIONS, Integer> entry : unsafeDirections.entrySet()){
+                for (Map.Entry<DIRECTIONS, Integer> entry : unsafeDirections.entrySet()){
 
-                    Types.DIRECTIONS direction = entry.getKey();
+                    DIRECTIONS direction = entry.getKey();
                     int bomb_range = entry.getValue();
 
                     Vector2d nextPosition = myPosition.copy();
@@ -327,16 +346,16 @@ public class A_StarHeuristic extends StateHeuristic {
             }
 
             // The directions that will go off the board.
-            Set<Types.DIRECTIONS> disallowed = new HashSet<>();
+            Set<DIRECTIONS> disallowed = new HashSet<>();
 
-            Types.DIRECTIONS[] directions = Types.DIRECTIONS.values();
+            DIRECTIONS[] directions = values();
 
-            for (Types.DIRECTIONS current_direction : directions) {
+            for (DIRECTIONS current_direction : directions) {
 
                 Vector2d position = myPosition.copy();
                 position = position.add(current_direction.toVec());
 
-                Types.DIRECTIONS direction = getDirection(myPosition, position);
+                DIRECTIONS direction = getDirection(myPosition, position);
 
                 if(!positionOnBoard(board, position)){
                     disallowed.add(direction);
@@ -352,7 +371,7 @@ public class A_StarHeuristic extends StateHeuristic {
 
             if(safe.isEmpty()){
                 // We don't have any safe directions, so return something that is allowed.
-                for(Types.DIRECTIONS k : unsafeDirections.keySet()) {
+                for(DIRECTIONS k : unsafeDirections.keySet()) {
                     if(!disallowed.contains(k))
                         safe.add(k);
                 }
@@ -403,9 +422,9 @@ public class A_StarHeuristic extends StateHeuristic {
                     break;
                 }
 
-                Types.DIRECTIONS[] directions = Types.DIRECTIONS.values();
+                DIRECTIONS[] directions = values();
 
-                for (Types.DIRECTIONS direction : directions) {
+                for (DIRECTIONS direction : directions) {
                     Vector2d newPosition = position.copy();
                     newPosition = newPosition.add(direction.toVec());
 
@@ -448,13 +467,14 @@ public class A_StarHeuristic extends StateHeuristic {
             return false;
         }
 
+        //得到附近敌人的距离
         private int getDistanceToNearestEnemy(){
             if(this.distanceToNearestEnemy == null){
                 this.distanceToNearestEnemy = computeDistanceToNearestEnemy(this.items, this.dist, this.enemies);
             }
             return this.distanceToNearestEnemy;
         }
-
+        //Calculate the distance to the enemy
         private int computeDistanceToNearestEnemy(
                 HashMap<Types.TILETYPE, ArrayList<Vector2d> > items,
                 HashMap<Vector2d, Integer> dist,
@@ -475,6 +495,7 @@ public class A_StarHeuristic extends StateHeuristic {
             return distance;
         }
 
+        //Get the distance to nearby PowerUp
         private int getDistanceToNearestPowerUp(){
             if(this.distanceToNearestPowerUp == null){
                 this.distanceToNearestPowerUp = computeDistanceToNearestPowerUp(this.items);
@@ -482,6 +503,7 @@ public class A_StarHeuristic extends StateHeuristic {
             return this.distanceToNearestPowerUp;
         }
 
+        //Calculate the distance to nearby PowerUp
         private int computeDistanceToNearestPowerUp(HashMap<Types.TILETYPE, ArrayList<Vector2d> > items)
         {
             Vector2d previousNode = new Vector2d(-1, -1); // placeholder, these values are not actually used
@@ -518,10 +540,13 @@ public class A_StarHeuristic extends StateHeuristic {
                                    ArrayList<GameObject> enemies, int depth){
 
             HashMap<Types.TILETYPE, ArrayList<Vector2d> > items = new HashMap<>();
-            HashMap<Vector2d, Integer> dist = new HashMap<>();
-            HashMap<Vector2d, Vector2d> prev = new HashMap<>();
+            HashMap<Vector2d, Integer> dist = new HashMap<>(); //目标到我的距离
+            HashMap<Vector2d, Vector2d> prev = new HashMap<>(); // 上一个位置字典
+            ArrayList<Vector2d> endList = new ArrayList<>();
 
+            //Data structures for the FIFO principle
             Queue<Vector2d> Q = new LinkedList<>();
+
 
             for(int r = max(0, myPosition.x - depth); r < min(board.length, myPosition.x + depth); r++){
                 for(int c = max(0, myPosition.y - depth); c < min(board.length, myPosition.y + depth); c++){
@@ -533,6 +558,7 @@ public class A_StarHeuristic extends StateHeuristic {
                     if(out_of_range)
                         continue;
 
+                    //Type of item returned
                     Types.TILETYPE itemType = board[r][c];
                     boolean positionInItems = (itemType == Types.TILETYPE.FOG ||
                             itemType == Types.TILETYPE.RIGID || itemType == Types.TILETYPE.FLAMES);
@@ -541,21 +567,27 @@ public class A_StarHeuristic extends StateHeuristic {
 
                     ArrayList<Vector2d> itemsTempList = items.get(itemType);
                     if(itemsTempList == null) {
+                        //If the list is empty, create a new list of arrays
                         itemsTempList = new ArrayList<>();
                     }
                     itemsTempList.add(position);
+                    //Add type and coordinates to the item dictionary
                     items.put(itemType, itemsTempList);
 
                     if(position.equals(myPosition)){
+                        //If it's my location, add my location.
                         Q.add(position);
                         dist.put(position, 0);
                     }
                     else{
+                        //Otherwise all distances are 100000
                         dist.put(position, 100000); // TODO: Inf
                     }
                 }
             }
 
+            //If the location of the bomb is equal to my location, 
+            //add the bomb to the temporary items list and add it to the items dictionary.
             for(Bomb bomb : bombs){
                 if(bomb.getPosition().equals(myPosition)){
                     ArrayList<Vector2d> itemsTempList = items.get(Types.TILETYPE.BOMB);
@@ -567,40 +599,63 @@ public class A_StarHeuristic extends StateHeuristic {
                 }
             }
 
-            while(!Q.isEmpty()){
+            while (!Q.isEmpty()){
                 Vector2d position = Q.remove();
-
                 if(positionIsPassable(board, position, enemies)){
-                    int val = dist.get(position) + 1;
-
-                    Types.DIRECTIONS[] directionsToBeChecked = Types.DIRECTIONS.values();
-
-                    for (Types.DIRECTIONS directionToBeChecked : directionsToBeChecked) {
-
+                    DIRECTIONSNew[] directionsToBeChecked = DIRECTIONSNew.values();
+                    for (DIRECTIONSNew directionToBeChecked : directionsToBeChecked){
                         Vector2d direction = directionToBeChecked.toVec();
+                        //End point
                         Vector2d new_position = new Vector2d(position.x + direction.x, position.y + direction.y);
 
                         if(!dist.containsKey(new_position))
                             continue;
+                        Node startNode = new Node(position.x, position.y);
+                        Node endNode = new Node(new_position.x, new_position.y);
+                // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
 
-                        int dist_val = dist.get(new_position);
+                        Node parent = findPath(startNode, endNode);
+                        ArrayList<Node> arrayList = new ArrayList<Node>();
 
-                        if(val < dist_val){
-                            dist.put(new_position, val);
-                            prev.put(new_position, position);
-                            Q.add(new_position);
+
+                        while (parent != null) {// Iterate over the path just found。
+                            //System.out.println(parent.x + ", " + parent.y);
+                            arrayList.add(new Node(parent.x, parent.y));
+                            dist.put(new_position,parent.F);
+                            prev.put(new_position,position);
+                            //Q.add(new_position);
+                            parent = parent.parent;
+
+
                         }
-                        else if(val == dist_val && random.nextFloat() < 0.5){
-                            dist.put(new_position, val);
-                            prev.put(new_position, position);
-                        }
+                        Q.add(new_position);
+//                        System.out.print("Q"+Q+"\n");
+//                        System.out.print("dist"+dist+"\n");
+//                        System.out.print("prev"+prev+"\n");
+
+
+
                     }
+
+
+
                 }
+
             }
+
+
+
+
+
+
             Container container = new Container();
+            //
             container.dist = dist;
+            //Coordinates of all items items.put()
             container.items = items;
+            //Return to dictionary {last position: previous position}
             container.prev = prev;
+
             return container;
         }
 
@@ -612,5 +667,204 @@ public class A_StarHeuristic extends StateHeuristic {
             Container() { }
         }
 
+
+        //a*
+        public enum DIRECTIONSNew { //方向
+            LEFT(-1, 0),
+            RIGHT(1, 0),
+            UP(0, -1),
+            DOWN(0, 1);
+
+            private int x, y;
+
+            DIRECTIONSNew(int x, int y) { // 坐标
+                this.x = x;
+                this.y = y;
+            }
+
+            public Vector2d toVec() { // 二维矢量
+                return new Vector2d(x, y);
+            }
+
+            public int x() {return x;}
+            public int y() {return y;}
+        }
+
+
+
+
+        // A* 节点
+        public Node findMinFNodeInOpenList() {
+             // Start with the F of the first element as the minimum value, 
+             //then iterate through all the values of the openlist to find the minimum value
+            Node tempNode = openList.get(0);
+            for (Node node : openList) {
+                if (node.F < tempNode.F) {
+                    tempNode = node;
+                }
+            }
+            return tempNode;
+        }
+
+        // When considering surrounding nodes, 
+        //nodes with a node value of 1 are not taken into account, so naturally, obstacles are avoided directly
+        public ArrayList<Node> findNeighborNodes(Node currentNode) {
+            ArrayList<Node> arrayList = new ArrayList<Node>();
+            // Only top, bottom, left and right are considered, not diagonal
+            int topX = currentNode.x;
+            int topY = currentNode.y - 1;
+            // The canReach method ensures that the subscript is not out of bounds 
+            //The exists method ensures that this adjacent node does not exist in the closeList, i.e. 
+            //it has not been traversed before
+            if (canReach(topX, topY) && !exists(closeList, topX, topY)) {
+                arrayList.add(new Node(topX, topY));
+            }
+            int bottomX = currentNode.x;
+            int bottomY = currentNode.y + 1;
+            if (canReach(bottomX, bottomY) && !exists(closeList, bottomX, bottomY)) {
+                arrayList.add(new Node(bottomX, bottomY));
+            }
+            int leftX = currentNode.x - 1;
+            int leftY = currentNode.y;
+            if (canReach(leftX, leftY) && !exists(closeList, leftX, leftY)) {
+                arrayList.add(new Node(leftX, leftY));
+            }
+            int rightX = currentNode.x + 1;
+            int rightY = currentNode.y;
+            if (canReach(rightX, rightY) && !exists(closeList, rightX, rightY)) {
+                arrayList.add(new Node(rightX, rightY));
+            }
+            return arrayList;
+        }
+
+        public boolean canReach(int x, int y) {
+            if (x >= 0 && x < board.length && y >= 0 && y < board[0].length) {
+                return board[x][y]== TILETYPE.PASSAGE; // 原来是在这里避过障碍物的啊。。如果节点值不为0，说明不可到达。
+            }
+            return false;
+        }
+
+        public Node findPath(Node startNode, Node endNode) {
+
+            // Add the starting point to the open list
+            openList.add(startNode);
+
+            while (openList.size() > 0) {
+                // Iterate through the open list to find the node 
+                //with the smallest F value and use it as the current node to be processed
+                Node currentNode = findMinFNodeInOpenList();
+
+                // The node with the lowest F value is removed from the open list
+                openList.remove(currentNode);
+                // Move this node to the close list, the closelist is the chain that stores the paths
+                closeList.add(currentNode);
+
+                // Find surrounding nodes that do not exist in the close list (disregarding the neighbours of the hypotenuse)
+                ArrayList<Node> neighborNodes = findNeighborNodes(currentNode);
+
+                // The openlist is actually a collection of stored peripheral nodes
+                for (Node node : neighborNodes) {// add the neighbour nodes to the openlist
+                    if (exists(openList, node)) { // If a neighbour node is in the openlist
+                        foundPoint(currentNode, node);
+                    } else {
+                        // If a neighbouring node is not in the openlist, then add it to the openlist
+                        notFoundPoint(currentNode, endNode, node);
+                    }
+                }
+   // If the end point is found in the openlist, then the path has been found and the end point is returned
+   if (find(openList, endNode) != null) {
+                    return find(openList, endNode);
+                }
+            }
+
+            return find(openList, endNode);
+        }
+
+        // In this case, the node with the smallest F value has been traversed before, 
+        //so the G,H,F values of this node have already been calculated.
+        // At this point the H value will definitely not change, so we have to compare the G values, 
+        //if the current G value is smaller than the previous one, it means that the current path is better
+        // Then reset the parent pointer, G and F values of this node
+        private void foundPoint(Node tempStart, Node node) {
+            int G = calcG(tempStart, node);
+            if (G < node.G) {
+                node.parent = tempStart;
+                node.G = G;
+                node.calcF();
+            }
+        }
+
+        //In this case, the value of this node has not been calculated before,
+        //so here we have to calculate the G,H,F values again, then check the parent pointer and add it to the openlist
+        private void notFoundPoint(Node tempStart, Node end, Node node) {
+            node.parent = tempStart;
+            node.G = calcG(tempStart, node);
+            node.H = calcH(end, node);
+            node.calcF();
+            openList.add(node);
+        }
+
+        private int calcG(Node start, Node node) {
+            int G = STEP;
+            int parentG = node.parent != null ? node.parent.G : 0;
+            return G + parentG;
+        }
+
+        // Calculating the H-value method
+        private int calcH(Node end, Node node) {
+            int step = Math.abs(node.x - end.x) + Math.abs(node.y - end.y);
+            return step * STEP;
+        }
+
+        public static Node find(List<Node> nodes, Node point) {
+            for (Node n : nodes)
+                if ((n.x == point.x) && (n.y == point.y)) {
+                    return n;
+                }
+            return null;
+        }
+
+        public static boolean exists(List<Node> nodes, Node node) {
+            for (Node n : nodes) {
+                if ((n.x == node.x) && (n.y == node.y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static boolean exists(List<Node> nodes, int x, int y) {
+            for (Node n : nodes) {
+                if ((n.x == x) && (n.y == y)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public static class Node {
+            public Node(int x, int y) {
+                this.x = x;
+                this.y = y;
+            }
+
+            public int x;
+            public int y;
+
+            public int F;
+            public int G;
+            public int H;
+
+            public void calcF() {
+                this.F = this.G + this.H;
+            }
+
+            public Node parent;
+        }
+
     }
 }
+
+
+
+

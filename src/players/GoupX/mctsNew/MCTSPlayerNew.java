@@ -1,6 +1,9 @@
 package players.GoupX.mctsNew;
 
 import core.GameState;
+import players.mcts.MCTSParams;
+import players.mcts.MCTSPlayer;
+import players.mcts.SingleTreeNode;
 import players.optimisers.ParameterizedPlayer;
 import players.Player;
 import utils.ElapsedCpuTimer;
@@ -9,8 +12,7 @@ import utils.Types;
 import java.util.ArrayList;
 import java.util.Random;
 
-public class MCTSPlayerNew extends ParameterizedPlayer {
-
+public class MCTSPlayerNew extends ParameterizedPlayer{
     /**
      * Random generator.
      */
@@ -30,7 +32,7 @@ public class MCTSPlayerNew extends ParameterizedPlayer {
         this(seed, id, new MCTSParamsNew());
     }
 
-    public MCTSPlayerNew(long seed, int id, players.GoupX.mctsNew.MCTSParamsNew params) {
+    public MCTSPlayerNew(long seed, int id, MCTSParamsNew params) {
         super(seed, id, params);
         reset(seed, id);
 
@@ -47,7 +49,7 @@ public class MCTSPlayerNew extends ParameterizedPlayer {
         super.reset(seed, playerID);
         m_rnd = new Random(seed);
 
-        this.params = (players.GoupX.mctsNew.MCTSParamsNew) getParameters();
+        this.params = (MCTSParamsNew) getParameters();
         if (this.params == null) {
             this.params = new MCTSParamsNew();
             super.setParameters(this.params);

@@ -325,7 +325,6 @@ public class SimplePlayer extends Player {
 
         while(!Q.isEmpty()){
             Vector2d position = Q.remove();
-
             if(positionIsPassable(board, position, enemies)){
                 int val = dist.get(position) + 1;
 
