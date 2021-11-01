@@ -624,11 +624,23 @@ public class A_StarHeuristic extends StateHeuristic {
                             dist.put(new_position,parent.F);
                             prev.put(new_position,position);
                             //Q.add(new_position);
+                            Vector2d parent2 = new Vector2d(parent.x, parent.y);
+                            int dis2 = dist.get(parent2);
+                            if (dis2<parent.F){
+                                dist.put(new_position,parent.F);
+                                prev.put(new_position,position);
+                                Q.add(new_position);
+
+                            }
+                            else if (dis2==parent.F){
+                                dist.put(new_position,parent.F);
+                                prev.put(new_position,position);
+                            }
                             parent = parent.parent;
 
 
                         }
-                        Q.add(new_position);
+
 //                        System.out.print("Q"+Q+"\n");
 //                        System.out.print("dist"+dist+"\n");
 //                        System.out.print("prev"+prev+"\n");

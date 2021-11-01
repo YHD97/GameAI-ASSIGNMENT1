@@ -1,9 +1,6 @@
 package players.GoupX.mctsNew;
 
 import core.GameState;
-import players.mcts.MCTSParams;
-import players.mcts.MCTSPlayer;
-import players.mcts.SingleTreeNode;
 import players.optimisers.ParameterizedPlayer;
 import players.Player;
 import utils.ElapsedCpuTimer;
