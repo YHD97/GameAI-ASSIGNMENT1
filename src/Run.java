@@ -31,7 +31,7 @@ public class Run {
         System.out.println("\t\t 3 SimplePlayer");
         System.out.println("\t\t 4 RHEA 200 itereations, shift buffer, pop size 1, random init, length: 12");
         System.out.println("\t\t 5 MCTS 200 iterations, length: 12");
-        System.out.println("\t\t 5 MCTSNew 200 iterations, length: 12");
+        System.out.println("\t\t 6 MCTSNew 200 iterations, length: 12");
     }
 
     public static void main(String[] args) {
