@@ -621,9 +621,8 @@ public class A_StarHeuristic extends StateHeuristic {
                         while (parent != null) {// Iterate over the path just found。
                             //System.out.println(parent.x + ", " + parent.y);
                             arrayList.add(new Node(parent.x, parent.y));
-                            dist.put(new_position,parent.F);
-                            prev.put(new_position,position);
                             //Q.add(new_position);
+<<<<<<< HEAD
                             Vector2d parent2 = new Vector2d(parent.x, parent.y);
                             int dis2 = dist.get(parent2);
                             if (dis2<parent.F){
@@ -633,14 +632,29 @@ public class A_StarHeuristic extends StateHeuristic {
 
                             }
                             else if (dis2==parent.F){
+=======
+                            Vector2d currentPoint = new Vector2d(parent.x, parent.y);
+                            int oldDist = dist.get(currentPoint);
+                            if(oldDist< parent.F){
+                                dist.put(new_position,parent.F);
+                                prev.put(new_position,position);
+                                Q.add(new_position);
+                            }
+                            else if(oldDist== parent.F){
+>>>>>>> YuhongDu
                                 dist.put(new_position,parent.F);
                                 prev.put(new_position,position);
                             }
                             parent = parent.parent;
 
 
-                        }
 
+                        }
+<<<<<<< HEAD
+
+=======
+                        //Q.add(new_position);
+>>>>>>> YuhongDu
 //                        System.out.print("Q"+Q+"\n");
 //                        System.out.print("dist"+dist+"\n");
 //                        System.out.print("prev"+prev+"\n");
