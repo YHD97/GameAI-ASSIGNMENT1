@@ -542,7 +542,7 @@ public class A_StarHeuristic extends StateHeuristic {
             HashMap<Types.TILETYPE, ArrayList<Vector2d> > items = new HashMap<>();
             HashMap<Vector2d, Integer> dist = new HashMap<>(); //目标到我的距离
             HashMap<Vector2d, Vector2d> prev = new HashMap<>(); // 上一个位置字典
-            ArrayList<Vector2d> endList = new ArrayList<>();
+            ArrayList<Vector2d> my_position = new ArrayList<>();
 
             //Data structures for the FIFO principle
             Queue<Vector2d> Q = new LinkedList<>();
@@ -565,6 +565,9 @@ public class A_StarHeuristic extends StateHeuristic {
                     if(positionInItems)
                         continue;
 
+                    if(itemType == TILETYPE.PASSAGE && !position.equals(myPosition)){
+                        Q.add(position);
+                    }
                     ArrayList<Vector2d> itemsTempList = items.get(itemType);
                     if(itemsTempList == null) {
                         //If the list is empty, create a new list of arrays
@@ -576,7 +579,7 @@ public class A_StarHeuristic extends StateHeuristic {
 
                     if(position.equals(myPosition)){
                         //If it's my location, add my location.
-                        Q.add(position);
+                       // my_position.add(position);
                         dist.put(position, 0);
                     }
                     else{
@@ -598,62 +601,142 @@ public class A_StarHeuristic extends StateHeuristic {
                     items.put(Types.TILETYPE.BOMB, itemsTempList);
                 }
             }
-
-            while (!Q.isEmpty()){
-                Vector2d position = Q.remove();
-                if(positionIsPassable(board, position, enemies)){
-                    DIRECTIONSNew[] directionsToBeChecked = DIRECTIONSNew.values();
-                    for (DIRECTIONSNew directionToBeChecked : directionsToBeChecked){
-                        Vector2d direction = directionToBeChecked.toVec();
-                        //End point
-                        Vector2d new_position = new Vector2d(position.x + direction.x, position.y + direction.y);
-
-                        if(!dist.containsKey(new_position))
-                            continue;
-                        Node startNode = new Node(position.x, position.y);
-                        Node endNode = new Node(new_position.x, new_position.y);
-                // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
-
-                        Node parent = findPath(startNode, endNode);
-                        ArrayList<Node> arrayList = new ArrayList<Node>();
+            //System.out.print("Q"+Q+"\n");
+            //for(int i = 0; i<)
 
 
-                        while (parent != null) {// Iterate over the path just found。
-                            //System.out.println(parent.x + ", " + parent.y);
-                            arrayList.add(new Node(parent.x, parent.y));
-                            dist.put(new_position,parent.F);
-                            prev.put(new_position,position);
-                            //Q.add(new_position);
-                            Vector2d currentPoint = new Vector2d(parent.x, parent.y);
-                            int currentDist = dist.get(currentPoint);
-                            if(currentDist<parent.F){
-                                dist.put(new_position,parent.F);
-                                prev.put(new_position,position);
-                                Q.add(new_position);
-                            }
-                            else if(currentDist==parent.F){
-                                dist.put(new_position,parent.F);
-                                prev.put(new_position,position);
-                            }
-                            parent = parent.parent;
+           if(dist.get(myPosition) != null){
+               while (!Q.isEmpty()){
+                   //end point
+                   Vector2d position = Q.remove();
+                   if(positionIsPassable(board, position, enemies)){
+
+                       if(!dist.containsKey(position))
+                           continue;
+
+                       //start Position == Position
+                       Node startNode = new Node(myPosition.x, myPosition.y);
+                       Node endNode = new Node(position.x, position.y);
+                       // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
+
+                       Node parent = findPath(startNode, endNode);
+                       ArrayList<Node> arrayList = new ArrayList<Node>();
+
+
+                       while (parent != null) {
+                           // Iterate over the path just found。
+                           //System.out.println(parent.x + ", " + parent.y);
+                           arrayList.add(new Node(parent.x, parent.y));
+
+
+                           //get currentPoint
+                           Vector2d currentPoint = new Vector2d(parent.x, parent.y);
+
+                           //get current dist
+
+                           //现在储存的距离
+
+                           if(dist.get(currentPoint) != null){
+                               int currentDist = dist.get(currentPoint);
+                               if(parent.parent != null){
+                                   Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
+                                   if(parent.F< currentDist){
+                                       dist.put(currentPoint,parent.F);
+                                       prev.put(currentPoint,LastPoint);
+
+                                   }
+                                   else if(currentDist==parent.F && random.nextFloat() < 0.5){
+                                       dist.put(currentPoint,parent.F);
+                                       prev.put(currentPoint,LastPoint);
+                                   }
+
+                               }
+                           }
+
+
+                           parent = parent.parent;
+//                           System.out.print("distdddd2"+parent.parent.x+parent.parent.y+"\n");
+//                           System.out.print("prevdddd2"+prev+"\n");
+
+
+                       }
 
 
 
-                        }
-                        //Q.add(new_position);
-//                        System.out.print("Q"+Q+"\n");
-//                        System.out.print("dist"+dist+"\n");
-//                        System.out.print("prev"+prev+"\n");
+
+                   }
 
 
 
-                    }
 
 
 
-                }
 
-            }
+
+
+
+               }
+           }
+
+//           System.out.print("dist"+dist+"\n");
+//           System.out.print("prev"+prev+"\n");
+
+
+//            while (!Q.isEmpty()){
+//                Vector2d position = Q.remove();
+//                if(positionIsPassable(board, position, enemies)){
+//                    DIRECTIONSNew[] directionsToBeChecked = DIRECTIONSNew.values();
+//                    for (DIRECTIONSNew directionToBeChecked : directionsToBeChecked){
+//                        Vector2d direction = directionToBeChecked.toVec();
+//                        //End point
+//                        Vector2d new_position = new Vector2d(position.x + direction.x, position.y + direction.y);
+//
+//                        if(!dist.containsKey(new_position))
+//                            continue;
+//                        Node startNode = new Node(position.x, position.y);
+//                        Node endNode = new Node(new_position.x, new_position.y);
+//                // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
+//
+//                        Node parent = findPath(startNode, endNode);
+//                        ArrayList<Node> arrayList = new ArrayList<Node>();
+//
+//
+//                        while (parent != null) {// Iterate over the path just found。
+//                            //System.out.println(parent.x + ", " + parent.y);
+//                            arrayList.add(new Node(parent.x, parent.y));
+//                            dist.put(new_position,parent.F);
+//                            prev.put(new_position,position);
+//                            //Q.add(new_position);
+//                            Vector2d currentPoint = new Vector2d(parent.x, parent.y);
+//                            int currentDist = dist.get(currentPoint);
+//                            if(currentDist<parent.F){
+//                                dist.put(new_position,parent.F);
+//                                prev.put(new_position,position);
+//                                Q.add(new_position);
+//                            }
+//                            else if(currentDist==parent.F && random.nextFloat() < 0.5){
+//                                dist.put(new_position,parent.F);
+//                                prev.put(new_position,position);
+//                            }
+//                            parent = parent.parent;
+//
+//
+//
+//                        }
+//                        //Q.add(new_position);
+////                        System.out.print("Q"+Q+"\n");
+////                        System.out.print("dist"+dist+"\n");
+////                        System.out.print("prev"+prev+"\n");
+//
+//
+//
+//                    }
+//
+//
+//
+//                }
+//
+//            }
 
 
 
