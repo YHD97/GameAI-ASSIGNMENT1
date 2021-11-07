@@ -524,6 +524,7 @@ public class AdvancedHeuristic extends StateHeuristic {
 
             Queue<Vector2d> Q = new LinkedList<>();
 
+
             for(int r = max(0, myPosition.x - depth); r < min(board.length, myPosition.x + depth); r++){
                 for(int c = max(0, myPosition.y - depth); c < min(board.length, myPosition.y + depth); c++){
 
@@ -598,6 +599,8 @@ public class AdvancedHeuristic extends StateHeuristic {
                     }
                 }
             }
+
+
             Container container = new Container();
             container.dist = dist;
             container.items = items;

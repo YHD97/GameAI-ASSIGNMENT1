@@ -38,13 +38,12 @@ public class Run {
 
         //default
         if(args.length == 0)
-            args = new String[]{"0", "2", "5", "-1", "6", "3", "4", "5"};
+            args = new String[]{"0", "10", "5", "-1", "6", "5", "4", "2"};
 
         if(args.length != 8) {
             printHelp();
             return;
         }
-
         try {
 
             Random rnd = new Random();
@@ -123,7 +122,7 @@ public class Run {
                         mctsParams.num_iterations = 200;
                         mctsParams.rollout_depth = 12;
 
-                        mctsParams.heuristic_method = mctsParams.CUSTOM_HEURISTIC;
+                        mctsParams.heuristic_method = mctsParams.ADVANCED_HEURISTIC;
                         p = new MCTSPlayer(seed, playerID++, mctsParams);
                         playerStr[i-4] = "MCTS";
                         break;

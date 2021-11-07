@@ -53,10 +53,10 @@ public class A_StarHeuristic extends StateHeuristic {
     public static class BoardStats
     {
         //A*
-        public static final int STEP = 10;
+        public static final int STEP = 1;
 
-        private ArrayList<Node> openList = new ArrayList<Node>();
-        private ArrayList<Node> closeList = new ArrayList<Node>();
+        private ArrayList<Node> openList = new ArrayList<>();
+        private ArrayList<Node> closeList = new ArrayList<>();
 
 
         // 原来的文件
@@ -542,10 +542,10 @@ public class A_StarHeuristic extends StateHeuristic {
             HashMap<Types.TILETYPE, ArrayList<Vector2d> > items = new HashMap<>();
             HashMap<Vector2d, Integer> dist = new HashMap<>(); //目标到我的距离
             HashMap<Vector2d, Vector2d> prev = new HashMap<>(); // 上一个位置字典
-            ArrayList<Vector2d> my_position = new ArrayList<>();
 
             //Data structures for the FIFO principle
             Queue<Vector2d> Q = new LinkedList<>();
+            Queue<Vector2d> Q_myPosition = new LinkedList<>();
 
 
             for(int r = max(0, myPosition.x - depth); r < min(board.length, myPosition.x + depth); r++){
@@ -566,7 +566,9 @@ public class A_StarHeuristic extends StateHeuristic {
                         continue;
 
                     if(itemType == TILETYPE.PASSAGE && !position.equals(myPosition)){
-                        Q.add(position);
+                        //if(abs(r-myPosition.x)>5||abs(c-myPosition.y)>5){
+                            Q.add(position);
+                        //}
                     }
                     ArrayList<Vector2d> itemsTempList = items.get(itemType);
                     if(itemsTempList == null) {
@@ -579,7 +581,7 @@ public class A_StarHeuristic extends StateHeuristic {
 
                     if(position.equals(myPosition)){
                         //If it's my location, add my location.
-                       // my_position.add(position);
+                        Q_myPosition.add(position);
                         dist.put(position, 0);
                     }
                     else{
@@ -589,7 +591,7 @@ public class A_StarHeuristic extends StateHeuristic {
                 }
             }
 
-            //If the location of the bomb is equal to my location, 
+            //If the location of the bomb is equal to my location,
             //add the bomb to the temporary items list and add it to the items dictionary.
             for(Bomb bomb : bombs){
                 if(bomb.getPosition().equals(myPosition)){
@@ -603,140 +605,166 @@ public class A_StarHeuristic extends StateHeuristic {
             }
             //System.out.print("Q"+Q+"\n");
             //for(int i = 0; i<)
+//            long startTime = System.nanoTime();
+
+            while(!Q_myPosition.isEmpty()){
+                Vector2d position = Q_myPosition.remove();
+                if(Q.size()<30)
+                    continue;
+                if(positionIsPassable(board, position, enemies)){
+                    int val = dist.get(position) + 1;
+
+                    Types.DIRECTIONS[] directionsToBeChecked = Types.DIRECTIONS.values();
+
+                    for (Types.DIRECTIONS directionToBeChecked : directionsToBeChecked) {
+
+                        Vector2d direction = directionToBeChecked.toVec();
+                        Vector2d new_position = new Vector2d(position.x + direction.x, position.y + direction.y);
+
+                        if(!dist.containsKey(new_position))
+                            continue;
+
+                        int dist_val = dist.get(new_position);
+
+                        if(val < dist_val){
+                            dist.put(new_position, val);
+                            prev.put(new_position, position);
+                            if(abs(new_position.x-myPosition.x)<5||abs(new_position.y-myPosition.y)<5){
+                                Q_myPosition.add(new_position);
+                                Q.remove(new_position);
+                            }
+                            else{
+                                break;
+                            }
+                        }
+                        else if(val == dist_val && random.nextFloat() < 0.5){
+                            dist.put(new_position, val);
+                            prev.put(new_position, position);
+                        }
+                    }
+                }
+            }
+
+            if(dist.get(myPosition) != null){
+                while (!Q.isEmpty()){
+                    //end point
+                    Vector2d position = Q.remove();
+                    if(positionIsPassable(board, position, enemies)){
+
+                        if(!dist.containsKey(position))
+                            continue;
+                        if(dist.get(position) == 100000)
+                            continue;
+                        //start Position == Position
 
 
-           if(dist.get(myPosition) != null){
-               while (!Q.isEmpty()){
-                   //end point
-                   Vector2d position = Q.remove();
-                   if(positionIsPassable(board, position, enemies)){
+                        Node startNode = new Node(myPosition.x, myPosition.y);
+                        Node endNode = new Node(position.x, position.y);
+                        // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
 
-                       if(!dist.containsKey(position))
-                           continue;
+                        Node parent = findPath(startNode, endNode);
 
-                       //start Position == Position
-                       Node startNode = new Node(myPosition.x, myPosition.y);
-                       Node endNode = new Node(position.x, position.y);
-                       // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
-
-                       Node parent = findPath(startNode, endNode);
-                       ArrayList<Node> arrayList = new ArrayList<Node>();
+                        //find the path
+//                        long startTime = System.nanoTime();
+                        while (parent != null) {
+                            // Iterate over the path just found。
 
 
-                       while (parent != null) {
-                           // Iterate over the path just found。
-                           //System.out.println(parent.x + ", " + parent.y);
-                           arrayList.add(new Node(parent.x, parent.y));
+                            //get currentPoint
+                            Vector2d currentPoint = new Vector2d(parent.x, parent.y);
+                            //System.out.print("终点："+currentPoint+"\n");
+                            //get current dist
+                            //现在储存的距离
+                            //dist.put(currentPoint,parent.F);
+                            if(dist.get(currentPoint) != null){
+                                if(parent.F< dist.get(currentPoint)){
+                                    dist.put(currentPoint,parent.F);
+                                    if(parent.parent != null){
+                                        Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
+                                        prev.put(currentPoint,LastPoint);
+                                    }
+                                }
+                                else if(parent.F< dist.get(currentPoint) && random.nextFloat() < 0.5){
+                                    if(parent.parent != null){
+                                        Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
+                                        prev.put(currentPoint,LastPoint);
+                                    }
+                                }
 
 
-                           //get currentPoint
-                           Vector2d currentPoint = new Vector2d(parent.x, parent.y);
+                            }
+                            parent = parent.parent;
+                        }
+                    }
+//                        long endTime = System.nanoTime();
+//                        System.out.print("代码运行时间："+(endTime-startTime)+"ms\n");
 
-                           //get current dist
-
-                           //现在储存的距离
-
-                           if(dist.get(currentPoint) != null){
-                               int currentDist = dist.get(currentPoint);
-                               if(parent.parent != null){
-                                   Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
-                                   if(parent.F< currentDist){
-                                       dist.put(currentPoint,parent.F);
-                                       prev.put(currentPoint,LastPoint);
-
-                                   }
-                                   else if(currentDist==parent.F && random.nextFloat() < 0.5){
-                                       dist.put(currentPoint,parent.F);
-                                       prev.put(currentPoint,LastPoint);
-                                   }
-
-                               }
-                           }
+                }
 
 
-                           parent = parent.parent;
-//                           System.out.print("distdddd2"+parent.parent.x+parent.parent.y+"\n");
-//                           System.out.print("prevdddd2"+prev+"\n");
+            }
 
 
-                       }
+            // test time
 
-
-
-
-                   }
-
-
-
-
-
-
-
-
-
-
-               }
-           }
-
-//           System.out.print("dist"+dist+"\n");
-//           System.out.print("prev"+prev+"\n");
-
-
-//            while (!Q.isEmpty()){
-//                Vector2d position = Q.remove();
-//                if(positionIsPassable(board, position, enemies)){
-//                    DIRECTIONSNew[] directionsToBeChecked = DIRECTIONSNew.values();
-//                    for (DIRECTIONSNew directionToBeChecked : directionsToBeChecked){
-//                        Vector2d direction = directionToBeChecked.toVec();
-//                        //End point
-//                        Vector2d new_position = new Vector2d(position.x + direction.x, position.y + direction.y);
+//            if(dist.get(myPosition) != null){
+//                while (!Q.isEmpty()){
+//                    //end point
+//                    Vector2d position = Q.remove();
+//                    if(positionIsPassable(board, position, enemies)){
 //
-//                        if(!dist.containsKey(new_position))
+//                        if(!dist.containsKey(position))
 //                            continue;
-//                        Node startNode = new Node(position.x, position.y);
-//                        Node endNode = new Node(new_position.x, new_position.y);
-//                // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
+//                        if(dist.get(position) == 100000)
+//                            continue;
+//                        //start Position == Position
+//
+//                        Node startNode = new Node(myPosition.x, myPosition.y);
+//                        Node endNode = new Node(position.x, position.y);
+//                        // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
 //
 //                        Node parent = findPath(startNode, endNode);
-//                        ArrayList<Node> arrayList = new ArrayList<Node>();
 //
 //
-//                        while (parent != null) {// Iterate over the path just found。
-//                            //System.out.println(parent.x + ", " + parent.y);
-//                            arrayList.add(new Node(parent.x, parent.y));
-//                            dist.put(new_position,parent.F);
-//                            prev.put(new_position,position);
-//                            //Q.add(new_position);
+//                        //find the path
+////                        long startTime = System.nanoTime();
+//                        while (parent != null) {
+//                            // Iterate over the path just found。
+//
+//                            //get currentPoint
 //                            Vector2d currentPoint = new Vector2d(parent.x, parent.y);
-//                            int currentDist = dist.get(currentPoint);
-//                            if(currentDist<parent.F){
-//                                dist.put(new_position,parent.F);
-//                                prev.put(new_position,position);
-//                                Q.add(new_position);
+//                            //get current dist
+//                            //现在储存的距离
+//                            //dist.put(currentPoint,parent.F);
+//                            if(dist.get(currentPoint) != null){
+//                                dist.put(currentPoint,parent.F);
+//                                int currentDist = dist.get(currentPoint);
+//                                if(parent.parent != null){
+//                                    Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
+//                                    prev.put(currentPoint,LastPoint);
+//
+//
+//                                }
 //                            }
-//                            else if(currentDist==parent.F && random.nextFloat() < 0.5){
-//                                dist.put(new_position,parent.F);
-//                                prev.put(new_position,position);
-//                            }
+//
 //                            parent = parent.parent;
 //
-//
-//
 //                        }
-//                        //Q.add(new_position);
-////                        System.out.print("Q"+Q+"\n");
-////                        System.out.print("dist"+dist+"\n");
-////                        System.out.print("prev"+prev+"\n");
-//
-//
+//                        long endTime = System.nanoTime();
+//                        System.out.print("代码运行时间："+(endTime-startTime)+"ms\n");
 //
 //                    }
 //
 //
-//
 //                }
-//
 //            }
+
+//            System.out.print("prev"+prev+"\n");
+//            System.out.print("dist"+dist+"\n");
+//
+//            System.out.print("items"+items+"\n");
+
+
 
 
 
@@ -790,8 +818,8 @@ public class A_StarHeuristic extends StateHeuristic {
 
         // A* 节点
         public Node findMinFNodeInOpenList() {
-             // Start with the F of the first element as the minimum value, 
-             //then iterate through all the values of the openlist to find the minimum value
+            // Start with the F of the first element as the minimum value,
+            //then iterate through all the values of the openlist to find the minimum value
             Node tempNode = openList.get(0);
             for (Node node : openList) {
                 if (node.F < tempNode.F) {
@@ -801,31 +829,31 @@ public class A_StarHeuristic extends StateHeuristic {
             return tempNode;
         }
 
-        // When considering surrounding nodes, 
+        // When considering surrounding nodes,
         //nodes with a node value of 1 are not taken into account, so naturally, obstacles are avoided directly
-        public ArrayList<Node> findNeighborNodes(Node currentNode) {
-            ArrayList<Node> arrayList = new ArrayList<Node>();
+        public ArrayList<Node> findNeighborPosition(Node MinFNode) {
+            ArrayList<Node> arrayList = new ArrayList<>();
             // Only top, bottom, left and right are considered, not diagonal
-            int topX = currentNode.x;
-            int topY = currentNode.y - 1;
-            // The canReach method ensures that the subscript is not out of bounds 
-            //The exists method ensures that this adjacent node does not exist in the closeList, i.e. 
+            int topX = MinFNode.x;
+            int topY = MinFNode.y - 1;
+            // The canReach method ensures that the subscript is not out of bounds
+            //The exists method ensures that this adjacent node does not exist in the closeList, i.e.
             //it has not been traversed before
             if (canReach(topX, topY) && !exists(closeList, topX, topY)) {
                 arrayList.add(new Node(topX, topY));
             }
-            int bottomX = currentNode.x;
-            int bottomY = currentNode.y + 1;
+            int bottomX = MinFNode.x;
+            int bottomY = MinFNode.y + 1;
             if (canReach(bottomX, bottomY) && !exists(closeList, bottomX, bottomY)) {
                 arrayList.add(new Node(bottomX, bottomY));
             }
-            int leftX = currentNode.x - 1;
-            int leftY = currentNode.y;
+            int leftX = MinFNode.x - 1;
+            int leftY = MinFNode.y;
             if (canReach(leftX, leftY) && !exists(closeList, leftX, leftY)) {
                 arrayList.add(new Node(leftX, leftY));
             }
-            int rightX = currentNode.x + 1;
-            int rightY = currentNode.y;
+            int rightX = MinFNode.x + 1;
+            int rightY = MinFNode.y;
             if (canReach(rightX, rightY) && !exists(closeList, rightX, rightY)) {
                 arrayList.add(new Node(rightX, rightY));
             }
@@ -834,7 +862,8 @@ public class A_StarHeuristic extends StateHeuristic {
 
         public boolean canReach(int x, int y) {
             if (x >= 0 && x < board.length && y >= 0 && y < board[0].length) {
-                return board[x][y]== TILETYPE.PASSAGE; // 原来是在这里避过障碍物的啊。。如果节点值不为0，说明不可到达。
+                return board[x][y]== TILETYPE.PASSAGE ||board[x][y]== TILETYPE.INCRRANGE||board[x][y]== TILETYPE.KICK
+                        ||board[x][y]== TILETYPE.EXTRABOMB; // 原来是在这里避过障碍物的啊。。如果节点值不为0，说明不可到达。
             }
             return false;
         }
@@ -845,29 +874,30 @@ public class A_StarHeuristic extends StateHeuristic {
             openList.add(startNode);
 
             while (openList.size() > 0) {
-                // Iterate through the open list to find the node 
+                // Iterate through the open list to find the node
                 //with the smallest F value and use it as the current node to be processed
-                Node currentNode = findMinFNodeInOpenList();
+                //起始点
+                Node MinFNode = findMinFNodeInOpenList();
 
                 // The node with the lowest F value is removed from the open list
-                openList.remove(currentNode);
+                openList.remove(MinFNode);
                 // Move this node to the close list, the closelist is the chain that stores the paths
-                closeList.add(currentNode);
+                closeList.add(MinFNode);
 
                 // Find surrounding nodes that do not exist in the close list (disregarding the neighbours of the hypotenuse)
-                ArrayList<Node> neighborNodes = findNeighborNodes(currentNode);
+                ArrayList<Node> neighborPosition = findNeighborPosition(MinFNode);
 
                 // The openlist is actually a collection of stored peripheral nodes
-                for (Node node : neighborNodes) {// add the neighbour nodes to the openlist
-                    if (exists(openList, node)) { // If a neighbour node is in the openlist
-                        foundPoint(currentNode, node);
+                for (Node neightborNode : neighborPosition) {// add the neighbour nodes to the openlist
+                    if (exists(openList, neightborNode)) { // If a neighbour node is in the openlist
+                        foundPoint(MinFNode, neightborNode);
                     } else {
                         // If a neighbouring node is not in the openlist, then add it to the openlist
-                        notFoundPoint(currentNode, endNode, node);
+                        notFoundPoint(MinFNode, endNode, neightborNode);
                     }
                 }
-   // If the end point is found in the openlist, then the path has been found and the end point is returned
-   if (find(openList, endNode) != null) {
+                // If the end point is found in the openlist, then the path has been found and the end point is returned
+                if (find(openList, endNode) != null) {
                     return find(openList, endNode);
                 }
             }
@@ -875,9 +905,9 @@ public class A_StarHeuristic extends StateHeuristic {
             return find(openList, endNode);
         }
 
-        // In this case, the node with the smallest F value has been traversed before, 
+        // In this case, the node with the smallest F value has been traversed before,
         //so the G,H,F values of this node have already been calculated.
-        // At this point the H value will definitely not change, so we have to compare the G values, 
+        // At this point the H value will definitely not change, so we have to compare the G values,
         //if the current G value is smaller than the previous one, it means that the current path is better
         // Then reset the parent pointer, G and F values of this node
         private void foundPoint(Node tempStart, Node node) {
@@ -959,7 +989,3 @@ public class A_StarHeuristic extends StateHeuristic {
 
     }
 }
-
-
-
-
