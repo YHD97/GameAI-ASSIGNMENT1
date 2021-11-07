@@ -653,7 +653,7 @@ public class A_StarHeuristic extends StateHeuristic {
 
                         if(!dist.containsKey(position))
                             continue;
-                        if(dist.get(position) == 100000)
+                        if(dist.get(position) != 100000)
                             continue;
                         //start Position == Position
 
@@ -663,13 +663,10 @@ public class A_StarHeuristic extends StateHeuristic {
                         // The end point is returned, but by this time the parent node is already established and can be traced back to the start node
 
                         Node parent = findPath(startNode, endNode);
-
                         //find the path
 //                        long startTime = System.nanoTime();
                         while (parent != null) {
                             // Iterate over the path just found。
-
-
                             //get currentPoint
                             Vector2d currentPoint = new Vector2d(parent.x, parent.y);
                             //System.out.print("终点："+currentPoint+"\n");
@@ -677,14 +674,15 @@ public class A_StarHeuristic extends StateHeuristic {
                             //现在储存的距离
                             //dist.put(currentPoint,parent.F);
                             if(dist.get(currentPoint) != null){
-                                if(parent.F< dist.get(currentPoint)){
-                                    dist.put(currentPoint,parent.F);
+                                if(parent.G< dist.get(currentPoint)){
+                                    dist.put(currentPoint,parent.G);
                                     if(parent.parent != null){
                                         Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
                                         prev.put(currentPoint,LastPoint);
+                                        //System.out.print("currentPoint: "+currentPoint+" LastPoint: "+LastPoint+"\n");
                                     }
                                 }
-                                else if(parent.F< dist.get(currentPoint) && random.nextFloat() < 0.5){
+                                else if(parent.G< dist.get(currentPoint) && random.nextFloat() < 0.5){
                                     if(parent.parent != null){
                                         Vector2d LastPoint = new Vector2d(parent.parent.x, parent.parent.y);
                                         prev.put(currentPoint,LastPoint);
@@ -696,8 +694,6 @@ public class A_StarHeuristic extends StateHeuristic {
                             parent = parent.parent;
                         }
                     }
-//                        long endTime = System.nanoTime();
-//                        System.out.print("代码运行时间："+(endTime-startTime)+"ms\n");
 
                 }
 
